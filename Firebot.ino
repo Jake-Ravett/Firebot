@@ -17,10 +17,10 @@ int RM1 = 4;
 int RM2 = 5;
 int enA = 11;
 int enB = 12;
-int pump = 13;
-int buttonState;         
+int pump = 6;
+int buttonState = 0;         
 int lastButtonState = LOW;   
-bool toggleState = false;
+int toggleState = 0;
 bool fire = false;
 bool event = false;
 int lock = 0;
@@ -29,7 +29,9 @@ int left = 0;
 int right = 0;
 int sensor_triggered = 0;
 float Objtemp;
-float Ambtemp;
+int sensorL = digitalRead(Left);
+int sensorR = digitalRead(Right);
+int sensorF = digitalRead(Forward);
 
 void setup() {
   pinMode(LM1, OUTPUT);
@@ -43,50 +45,49 @@ void setup() {
   pinMode(Forward, INPUT);
   pinMode(Right, INPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
+  digitalWrite(pump, LOW);
   mlx.begin();
   Serial.begin(9600);
 }
 
 void check_fire() {
-  float Objtemp = mlx.readObjectTempF(); 
-  float Ambtemp = mlx.readAmbientTempF();
-
-  if((Objtemp > Ambtemp + 10) && fire == false){
+  if((Objtemp > 82) && fire == false){
     lock = 1;
     fire = true;
     Serial.println("Fire");
     analogWrite(enA, 0);
-	  analogWrite(enB, 0);
+    analogWrite(enB, 0);
     digitalWrite(LM1, HIGH);
     digitalWrite(LM2, HIGH);
     digitalWrite(RM1, HIGH);
     digitalWrite(RM2, HIGH);
     digitalWrite(pump, HIGH);
-    delay(5000);
+    delay(500);
     digitalWrite(pump, LOW);
   }
-  else if((Objtemp < Ambtemp + 2) && fire == true){
+  else if (fire == true){
     fire = false;
     lock = 0;
     fwd = 0;
     right = 0;
     left = 0;
-     Serial.println(" NOFire");
+    //Serial.println(" NoFire");
     analogWrite(enA, 0);
-	  analogWrite(enB, 0);
+    analogWrite(enB, 0);
     digitalWrite(LM1, HIGH);
     digitalWrite(LM2, HIGH);
     digitalWrite(RM1, HIGH);
     digitalWrite(RM2, HIGH);
+    Serial.println(sensorF);
   }
 }
 
 void move_forward() {
   lock = 1;
   fwd = 1;
-  Serial.println("Moving Forward");
-  analogWrite(enA, 130);
-	analogWrite(enB, 130);
+  //Serial.println("Moving Forward");
+  analogWrite(enA, 150);
+  analogWrite(enB, 150);
   digitalWrite(LM1, HIGH);
   digitalWrite(LM2, LOW);
   digitalWrite(RM1, HIGH);
@@ -94,9 +95,9 @@ void move_forward() {
 }
 
 void move_backward() { 
-  Serial.println("Moving Backward");
+  //Serial.println("Moving Backward");
   analogWrite(enA, 55);
-	analogWrite(enB, 55);
+  analogWrite(enB, 55);
   digitalWrite(LM1, LOW);
   digitalWrite(LM2, HIGH);
   digitalWrite(RM1, LOW);
@@ -106,9 +107,9 @@ void move_backward() {
 void turn_left() {
   lock = 1;
   left = 1;
-  Serial.println("Turning Left");
+  //Serial.println("Turning Left");
   analogWrite(enA, 130);
-	analogWrite(enB, 130);
+  analogWrite(enB, 130);
   digitalWrite(LM1, HIGH);
   digitalWrite(LM2, LOW);
   digitalWrite(RM1, LOW);
@@ -118,9 +119,9 @@ void turn_left() {
 void turn_right() {
   lock = 1;
   right = 1;
-  Serial.println("Turning Right");
+  //Serial.println("Turning Right");
   analogWrite(enA, 130);
-	analogWrite(enB, 130);
+  analogWrite(enB, 130);
   digitalWrite(LM1, LOW);
   digitalWrite(LM2, HIGH);
   digitalWrite(RM1, HIGH);
@@ -128,34 +129,35 @@ void turn_right() {
 }
 
 void loop() {
-  int sensorL = digitalRead(Left);
-  int sensorR = digitalRead(Right);
-  int sensorF = digitalRead(Forward);
-
+  Objtemp = mlx.readObjectTempF(); 
+  //Serial.println(Objtemp);
+  //delay(1000);
+  //Serial.println(Ambtemp);
+  sensorL = digitalRead(Left);
+  sensorR = digitalRead(Right);
+  sensorF = digitalRead(Forward);
   buttonState = digitalRead(BUTTON_PIN);
   if (buttonState != lastButtonState) {
     if (buttonState == HIGH) {
       toggleState = !toggleState;
       Serial.println(toggleState);
     }
-    delay(50);
+    delay(150);
   }
   lastButtonState = buttonState;
   if(toggleState == 0){
-    if(sensor_triggered == 1){
-      check_fire();
-    }
+  check_fire();
     if(fire == false){
       if (!lock) {
         if (sensorF == 0) {
           sensor_triggered = 1;
           move_forward();
         } 
-        else if (sensorL == 0){
+        if (sensorL == 0){
           sensor_triggered = 1;
           turn_left();
         } 
-        else if (sensorR == 0) {
+        if (sensorR == 0) {
           sensor_triggered = 1;
           turn_right();
         } 
@@ -167,31 +169,31 @@ void loop() {
             fwd = 0;
             turn_left();
           } 
-          else if (sensorR == 0) {
+          if (sensorR == 0) {
             lock = 0;
             fwd = 0;
             turn_right();
           } 
         } 
-        else if (left) {
+        if (left) {
           if ((sensorF == 0) || (sensorL == 0 && sensorR == 0 && sensorF == 0)) {
             lock = 0;
             left = 0;
             move_forward();
           } 
-          else if (sensorR == 0) {
+          if (sensorR == 0) {
             lock = 0;
             left = 0;
             turn_right();
           }
         }
-        else if (right) {
+        if (right) {
           if ((sensorF == 0) || (sensorL == 0 && sensorR == 0 && sensorF == 0)) {
             lock = 0;
             right = 0;
             move_forward();
           } 
-          else if (sensorL == 0) {
+          if (sensorL == 0) {
             lock = 0;
             right = 0;
             turn_left();
@@ -207,7 +209,6 @@ void loop() {
     fwd = 0;
     right = 0;
     left = 0;
-    sensor_triggered = 0;
 
     if (Serial.available() > 0) { 
       char data = Serial.read(); 
@@ -224,12 +225,12 @@ void loop() {
             event = true;
             digitalWrite(pump, HIGH);
             analogWrite(enA, 0);
-	          analogWrite(enB, 0);
+	    analogWrite(enB, 0);
             digitalWrite(LM1, HIGH);
             digitalWrite(LM2, HIGH);
             digitalWrite(RM1, HIGH);
             digitalWrite(RM2, HIGH);
-            delay(5000);
+            delay(500);
             digitalWrite(pump, LOW);
           }
     }
@@ -237,7 +238,7 @@ void loop() {
     if(event == false){
       if (data == 'S') {
         analogWrite(enA, 0);
-	      analogWrite(enB, 0);
+	analogWrite(enB, 0);
         digitalWrite(LM1, HIGH);
         digitalWrite(LM2, HIGH);
         digitalWrite(RM1, HIGH);
@@ -245,8 +246,8 @@ void loop() {
       }
       else if (data == 'F') {
         Serial.println("for");
-        analogWrite(enA, 255);
-	      analogWrite(enB, 255);
+        analogWrite(enA, 180);
+	analogWrite(enB, 170);
         digitalWrite(LM1, HIGH);
         digitalWrite(LM2, LOW);
         digitalWrite(RM1, HIGH);
@@ -254,8 +255,8 @@ void loop() {
       }
       else if (data == 'B') {
         Serial.println("back");
-        analogWrite(enA, 255);
-	      analogWrite(enB, 255);
+        analogWrite(enA, 180);
+	analogWrite(enB, 180);
         digitalWrite(LM1, LOW);
         digitalWrite(LM2, HIGH);
         digitalWrite(RM1, LOW);
@@ -263,7 +264,7 @@ void loop() {
       }
       else if (data == 'L') {
         analogWrite(enA, 130);
-	      analogWrite(enB, 130);
+	analogWrite(enB, 130);
         digitalWrite(LM1, HIGH);
         digitalWrite(LM2, LOW);
         digitalWrite(RM1, LOW);
@@ -271,7 +272,7 @@ void loop() {
       }
       else if (data == 'R') {
         analogWrite(enA, 130);
-	      analogWrite(enB, 130);
+	analogWrite(enB, 130);
         digitalWrite(LM1, LOW);
         digitalWrite(LM2, HIGH);
         digitalWrite(RM1, HIGH);
@@ -285,7 +286,7 @@ void loop() {
     lastCommandTime = currentTime;
     }
   }
-  }
+}
   
 
   

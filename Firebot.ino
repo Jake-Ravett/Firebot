@@ -280,8 +280,6 @@ void loop() {
       }
     }
     } 
-    
-
     lastCommand = data;
     lastCommandTime = currentTime;
     }
